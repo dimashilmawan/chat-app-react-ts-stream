@@ -5,6 +5,7 @@ import { useAuthContext } from "../context/AuthContext";
 
 const Signup = () => {
 	const { signup } = useAuthContext();
+
 	const usernameRef = useRef<HTMLInputElement>(null);
 	const nameRef = useRef<HTMLInputElement>(null);
 	const imageUrlRef = useRef<HTMLInputElement>(null);
@@ -16,11 +17,13 @@ const Signup = () => {
 		const username = usernameRef.current?.value;
 		const name = nameRef.current?.value;
 		const imageUrl = imageUrlRef.current?.value;
+
 		if (username == null || username === "" || name == null || name === "")
 			return;
 
 		signup.mutate({ id: username, name: name, image: imageUrl });
 	};
+
 	return (
 		<>
 			<h1 className="text-center text-3xl font-bold text-gray-800">Sign up</h1>

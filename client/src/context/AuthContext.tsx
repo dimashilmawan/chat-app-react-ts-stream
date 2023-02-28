@@ -9,6 +9,7 @@ import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import axios, { AxiosResponse } from "axios";
 import { useNavigate } from "react-router-dom";
 import { StreamChat } from "stream-chat";
+import useLocalStorage from "../hooks/useLocalStorage";
 
 type User = {
 	id: string;
@@ -19,6 +20,7 @@ type User = {
 type AuthContextObj = {
 	signup: UseMutationResult<AxiosResponse, unknown, User>;
 	login: UseMutationResult<{ token: string; user: User }, unknown, string>;
+	logout: UseMutationResult<AxiosResponse, unknown, void>;
 	user?: User;
 	streamChat?: StreamChat;
 };
@@ -30,8 +32,8 @@ type AuthContextProviderProps = {
 const AuthContext = createContext<AuthContextObj | null>(null);
 
 const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
-	const [user, setUser] = useState<User>();
-	const [token, setToken] = useState<string>();
+	const [user, setUser] = useLocalStorage<User>("user");
+	const [token, setToken] = useLocalStorage<string>("token");
 	const [streamChat, setStreamChat] = useState<StreamChat>();
 
 	const navigate = useNavigate();
@@ -59,6 +61,17 @@ const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
 		},
 	});
 
+	const logout = useMutation({
+		mutationFn: () => {
+			return axios.post(`${import.meta.env.VITE_SERVER_URL}/logout`, { token });
+		},
+		onSuccess: () => {
+			setUser(undefined);
+			setStreamChat(undefined);
+			setToken(undefined);
+		},
+	});
+
 	useEffect(() => {
 		if (user == null || token == null) return;
 
@@ -82,7 +95,7 @@ const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
 	}, [token, user]);
 
 	return (
-		<AuthContext.Provider value={{ signup, login, user, streamChat }}>
+		<AuthContext.Provider value={{ signup, login, user, streamChat, logout }}>
 			{children}
 		</AuthContext.Provider>
 	);
@@ -93,3 +106,25 @@ export default AuthContextProvider;
 export const useAuthContext = () => {
 	return useContext(AuthContext) as AuthContextObj;
 };
+
+export const useLoggedInAuth = () => {
+	return useContext(AuthContext) as AuthContextObj &
+		Required<Pick<AuthContextObj, "user">>;
+};
+
+// ////////////////////////////////////////////////////////
+
+// type AuthContextObj = {
+// 	signup: ()=>void;
+// };
+
+// const AuthContext = createContext({}as AuthContextObj);
+
+// const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
+// 	const signup = ()=> {}
+// 	return <AuthContext.Provider value={{signup}}>{children}</AuthContext.Provider>
+// }
+
+// export const useAuthContext = () => {
+// 	return useContext(AuthContext);
+// };
